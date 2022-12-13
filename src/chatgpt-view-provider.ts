@@ -1,16 +1,16 @@
-import { ChatGPTAPI, ChatGPTConversation } from 'chatgpt';
+import { ChatGPTAPI } from 'chatgpt';
 import * as vscode from 'vscode';
 
 export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
     private webView?: vscode.WebviewView;
     private chatGptApi?: ChatGPTAPI;
-    private chatGptConversaion?: ChatGPTConversation;
     private sessionToken?: string;
-    private clearanceToken?: string;
-    private userAgent?: string;
     private message?: any;
+    private conversationId: string;
 
-    constructor(private context: vscode.ExtensionContext) { }
+    constructor(private context: vscode.ExtensionContext) {
+        this.conversationId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -27,10 +27,25 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.onDidReceiveMessage(data => {
             if (data.type === 'askChatGPT') {
-                this.sendApiRequest(data.value);
+                this.sendApiRequest(data.value);       
             }
-            if (data.type === 'clearChat') {
-                this.chatGptConversaion = this.chatGptApi?.getConversation();
+            if (data.type === 'askChatGPTwithContent') {
+                let editor = vscode.window.activeTextEditor;
+
+                if (editor) {
+                    const selectedCode = editor.document.getText(vscode.window.activeTextEditor?.selection);
+                    const entireFileContents = editor.document.getText();
+        
+                    const code = selectedCode
+                        ? selectedCode
+                        : `This is the ${editor.document.languageId} file I'm working on: \n\n${entireFileContents}`;
+                    this.sendApiRequest(data.value,code);
+                }
+                else
+                {
+                    this.sendApiRequest(data.value);
+                }
+                
             }
         });
 
@@ -40,51 +55,24 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    public async setUpTokens() {
-        this.sessionToken = await this.context.globalState.get('chatgpt-session-token') as string;
+    public async setUpSessionToken() {
+        const sessionTokenName = 'chatgpt-session-token';
+        this.sessionToken = await this.context.globalState.get(sessionTokenName) as string;
 
         if (!this.sessionToken) {
             const userSessionToken = await vscode.window.showInputBox({
-                prompt: "Please enter your session token (__Secure-next-auth.session-token), this can be retrieved using the guide on the README ",
-                ignoreFocusOut: true,
+                prompt: "Please enter your token (__Secure-next-auth.session-token), this can be retrieved using the guide on the README "
             });
             this.sessionToken = userSessionToken!;
-            this.context.globalState.update('chatgpt-session-token', this.sessionToken);
-        }
-
-        this.clearanceToken = await this.context.globalState.get('chatgpt-clearance-token') as string;
-
-        if (!this.clearanceToken) {
-            const userClearanceToken = await vscode.window.showInputBox({
-                prompt: "Please enter your clearance token (cf_clearance), this can be retrieved using the guide on the README ",
-                ignoreFocusOut: true,
-            });
-            this.clearanceToken = userClearanceToken!;
-            this.context.globalState.update('chatgpt-clearance-token', this.clearanceToken);
-        }
-
-        this.userAgent = await this.context.globalState.get('chatgpt-user-agent') as string;
-        if (!this.userAgent) {
-            const userUserAgent = await vscode.window.showInputBox({
-                prompt: "Please enter your user agent, this can be retrieved using the guide on the README ",
-                ignoreFocusOut: true,
-                value: this.userAgent
-            });
-            this.userAgent = userUserAgent!;
-            this.context.globalState.update('chatgpt-user-agent', this.userAgent);
+            this.context.globalState.update(sessionTokenName, this.sessionToken);
         }
     }
 
     public async sendApiRequest(prompt: string, code?: string) {
-        await this.setUpTokens();
-
-        if (!this.chatGptApi || !this.chatGptConversaion) {
+        await this.setUpSessionToken();
+        if (!this.chatGptApi) {
             try {
-                this.chatGptApi = new ChatGPTAPI({
-                    sessionToken: this.sessionToken as string,
-                    clearanceToken: this.clearanceToken as string
-                });
-                this.chatGptConversaion = this.chatGptApi?.getConversation();
+                this.chatGptApi = new ChatGPTAPI({ sessionToken: this.sessionToken as string });
             } catch (error: any) {
                 vscode.window.showErrorMessage("Failed to connect to ChatGPT", error?.message);
                 return;
@@ -104,10 +92,9 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
         this.sendMessage({ type: 'addQuestion', value: prompt, code });
         try {
             await this.chatGptApi?.ensureAuth();
-            const response = await this.chatGptConversaion.sendMessage(question, {
-                timeoutMs: 2 * 60 * 1000
+            const response = await this.chatGptApi?.sendMessage(question, {
+                conversationId: this.conversationId,
             });
-
             this.sendMessage({ type: 'addResponse', value: response });
         } catch (error: any) {
             await vscode.window.showErrorMessage("Error sending request to ChatGPT", error?.message);
@@ -157,8 +144,12 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 								placeholder="Ask a question..."
 							></textarea>
 						</div>
-						<button style="background: var(--vscode-button-background)" id="ask-button" class="p-2 ml-5">Ask</button>
-						<button style="background: var(--vscode-button-background)" id="clear-button" class="p-2 ml-3">Clear</button>
+						<button style="background: var(--vscode-button-background)" id="ask-button" class="p-2 ml-5">
+							Ask
+						</button>
+                        <button style="background: var(--vscode-button-background)" id="ask-with-select-button" class="p-2 ml-5">
+                        Ask about the selection
+                    </button>
 					</div>
 				</div>
 				<script src="${scriptUri}"></script>
