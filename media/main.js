@@ -4,11 +4,11 @@
 // It cannot access the main VS Code APIs directly.
 (function () {
     const vscode = acquireVsCodeApi();
-    const list = document.getElementById("qa-list");
 
     // Handle messages sent from the extension to the webview
     window.addEventListener("message", (event) => {
         const message = event.data;
+        const list = document.getElementById("qa-list");
 
         switch (message.type) {
             case "addQuestion":
@@ -60,12 +60,21 @@
             input.value = "";
         }
     };
+    let submitHandler2 = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const input = document.getElementById("question-input");
+        if (input.value?.length > 0) {
+            vscode.postMessage({
+                type: "askChatGPTwithContent",
+                value: input.value,
+            });
 
-    document.getElementById("clear-button")?.addEventListener("click", () => {
-        list.innerHTML = "";
-        vscode.postMessage({ type: "clearChat", });
-    });
+            input.value = "";
+        }
+    };
     document.getElementById("ask-button")?.addEventListener("click", submitHandler);
+    document.getElementById("ask-with-select-button")?.addEventListener("click", submitHandler2);
     document.getElementById("question-input")?.addEventListener("keydown", function (e) {
         console.log(e.key);
         if (e.key === "Enter" && !e.shiftKey) {
