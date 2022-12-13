@@ -1,14 +1,14 @@
 {
-  "name": "chatgpt-vscode-plugin",
+  "name": "chatgpt vscode 中文插件",
   "icon": "images/icon.png",
   "license": "MIT",
   "repository": {
-    "url": "https://github.com/barnesoir/chatgpt-vscode-plugin"
+    "url": "https://github.com/oldcodeoberyn/chatgpt-vscode-plugin-chinese"
   },
-  "publisher": "JayBarnes",
-  "displayName": "ChatGPT VSCode Plugin",
-  "description": "A ChatGPT integration build using ChatGPT & 9 beers",
-  "version": "1.1.8",
+  "publisher": "oldcodeoberyn ",
+  "displayName": "ChatGPT中文插件增强版",
+  "description": "在已有插件的基础上，增加对代码和文本自由提问的功能",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.73.0"
   },
@@ -49,27 +49,27 @@
     "commands": [
       {
         "command": "chatgpt-vscode-plugin.askGPT",
-        "title": "ChatGPT: Query"
+        "title": "ChatGPT: 自由提问"
       },
       {
         "command": "chatgpt-vscode-plugin.addTests",
-        "title": "ChatGPT: Add tests"
+        "title": "ChatGPT: 添加测试代码"
       },
       {
         "command": "chatgpt-vscode-plugin.whyBroken",
-        "title": "ChatGPT: Why is it broken?"
+        "title": "ChatGPT: 解释代码报错"
       },
       {
         "command": "chatgpt-vscode-plugin.explainPls",
-        "title": "ChatGPT: Explain code"
+        "title": "ChatGPT: 解释代码"
       },
       {
         "command": "chatgpt-vscode-plugin.refactor",
-        "title": "ChatGPT: Refactor"
+        "title": "ChatGPT: 重构代码"
       },
       {
         "command": "chatgpt-vscode-plugin.resetToken",
-        "title": "ChatGPT: Reset token"
+        "title": "ChatGPT: 重置 token"
       }
     ],
     "viewsContainers": {
@@ -119,6 +119,6 @@
     "webpack-cli": "^5.0.0"
   },
   "dependencies": {
-    "chatgpt": "^2.2.0"
+    "chatgpt": "^1.4.0"
   }
 }
